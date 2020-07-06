@@ -833,7 +833,69 @@ def edit_food():
         except ValueError:
             print(f"\n\tOnly digits are accepted.")
             short_pause()
-       
+
+def convert_creds_to_dict(creds):
+    global creds_dict
+
+    for cred in creds:
+        username = cred[0]
+        is_admin = cred[1]
+        discount = cred[2]
+
+        creds_dict[username] = [is_admin, discount]
+
+def edit_credentials():
+    global creds_dict
+
+    while True:
+        clear_screen()
+        creds_dict.clear()
+
+        client_socket = connect_to_server()
+        client_socket.connect((HOST, PORT))
+
+        client_socket.send(b'get_credentials')
+        server_reply = client_socket.recv(255).decode()
+
+        if server_reply == "ok":
+            client_socket.send(b'initiate')
+
+            try:
+                creds = eval(client_socket.recv(2048).decode())
+                client_socket.close()
+
+                # [('admin', 'yes', '15'), ('student', 'no', '10'), ('teacher', 'no', '20'), ('test', 'no', '5')]
+                convert_creds_to_dict(creds)
+
+                print_header("\tEdit users.")
+
+                for count, username in enumerate(creds_dict, 1):
+                    print(f"\t{count}. {username}")
+
+                try:
+                    instructions = "\n\tOnly digits are accepted."
+                    instructions = "\n\tEnter '0' to exit."
+                    instructions += "\n\tPlease select a user -> "
+
+                    selected_user = int(input(instructions).strip())
+
+                    if selected_user == 0:
+                        break
+                
+                except ValueError:
+                    print("\n\tOnly digits are accepted.")
+                    short_pause()
+
+            except Exception as error:
+                print(f"\n\t{error}")
+                pause()
+                break
+
+        else:
+            print("\n\tReceived response other than 'ok' for Register.")
+            print("\tExiting program.")
+            sys.exit(1)
+     
 def admin_menu(username):
     while True:
         clear_screen()
@@ -841,7 +903,8 @@ def admin_menu(username):
 
         print(f"\tWelcome {username}.\n")
         print("\t1. Edit food name|price.")
-        print("\t2. Shutdown server.")
+        print("\t2. Edit credentials.")
+        print("\t3. Shutdown server.")
 
         instructions = "\n\tEnter '0' to exit."
         instructions += "\n\tOnly accepts digits."
@@ -857,6 +920,9 @@ def admin_menu(username):
                 edit_food()
 
             elif option == 2:
+                edit_credentials()
+
+            elif option == 3:
                 shutdown_server()
                        
             else:
@@ -1070,6 +1136,7 @@ try:
     food_dict = convert_data_to_nested_dict(download_data())
     todays_food_dict = food_dict.get(DAY_OF_THE_WEEK)
     food_cart_dict = dict()
+    creds_dict = dict()
 
     login_menu()
 
