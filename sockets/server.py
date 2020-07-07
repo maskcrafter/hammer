@@ -49,6 +49,33 @@ class Login_Server(Server):
             print("Unable to find DB file.")
             sys.exit(1)
 
+    def update_credentials(self, query):
+        db_file_exist = path.exists(self.db_filename)
+
+        if db_file_exist:
+            try:
+                sqlite_connection = sqlite3.connect(self.db_filename)
+                print("[Update credentials] Connect to DB successful.")
+
+                cursor = sqlite_connection.cursor()
+                cursor.execute(query)
+                sqlite_connection.commit()
+                
+                result = cursor.fetchall()
+                return len(result)
+
+            except sqlite3.Error as error:
+                print(f"Error while connecting to sqlite -> {error}")
+            
+            finally:
+                if (sqlite_connection):
+                    sqlite_connection.close()
+                    print("[Update credentials] Sqlite connection closed")
+
+        else:
+            print("Unable to find DB file.")
+            sys.exit(1)
+
     def get_credentials(self):
         db_file_exist = path.exists(self.db_filename)
 
@@ -176,6 +203,19 @@ class Simple_Food_Server(Login_Server):
 
                     data = eval(connection.recv(2048).decode())
                     self.update_file(self.filename, data)
+
+                elif data_received == 'update_username':
+                    connection.send(b'ok')
+                    
+                    query = connection.recv(2048).decode()
+                    result = self.update_credentials(query)
+
+                    if result == 0:
+                        connection.send(b'update_username_successful')
+                        
+                    else:
+                        print(f'Error when executing -> {query}')
+                        sys.exit(1)
 
                 elif data_received == 'get_credentials':
                     connection.send(b'ok')

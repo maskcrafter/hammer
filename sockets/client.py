@@ -844,6 +844,87 @@ def convert_creds_to_dict(creds):
 
         creds_dict[username] = [is_admin, discount]
 
+def change_username(selected_user):
+    clear_screen()
+    print_header("\tChange username.")
+
+    print("\tOnly accepts alphabets.")
+    print(f"\n\tOld username -> {selected_user}")
+    
+    new_username = input("\tNew username -> ").lower().strip()
+
+    regex = r"^[A-Za-z]*$"
+    query = f"UPDATE credentials SET username=\"{new_username}\" WHERE username=\"{selected_user}\""
+
+    if re.match(regex, new_username):
+        duplicate = False
+
+        for username in creds_dict:
+            if new_username == username:
+                duplicate = True
+                break
+
+        if duplicate == False:
+            client_socket = connect_to_server()
+            client_socket.connect((HOST, PORT))
+
+            client_socket.send(b'update_username')
+            server_reply = client_socket.recv(255).decode()
+
+            if server_reply == "ok":
+                client_socket.send(query.encode())
+                update_username_reply = client_socket.recv(255).decode()
+
+                if update_username_reply == 'update_username_successful':
+                    return "break"
+
+                else:
+                    print("\n\tSomething wrong with updating username in the backend.")
+                    print("\n\tTerminating client.")
+                    sys.exit(1)
+
+            else:
+                print("\n\tReceived response other than 'ok' for Update Username.")
+                print("\tExiting program.")
+                sys.exit(1)
+
+        else:
+            print("\n\tNew username must not be a duplicate on an existing username.")
+            short_pause()
+
+    else:
+        print("\n\tOnly accepts alphabets.")
+        print("\n\tPlease check your input again.")
+        short_pause()
+
+def edit_menu(selected_user):
+    while True:
+        clear_screen()
+        print_header(f"\tChoose the option that you need to do with {selected_user}.")
+
+        print("\t1. Change username to something else.")
+        print("\t2. Change password to something else.")
+        print("\t3. Change discount rate to something else.")
+        print(f"\t4. Delete {selected_user} from database.")
+
+        try:
+            instructions = "\n\tOnly digits are accepted."
+            instructions += "\n\tEnter '0' to exit."
+            instructions += "\n\tOption -> "
+
+            option = int(input(instructions).strip())
+
+            if option == 0:
+                break
+
+            elif option == 1:
+                if change_username(selected_user) == 'break':
+                    break
+
+        except ValueError:
+            print("\n\tOnly digits are accepted.")
+            short_pause()
+
 def edit_credentials():
     global creds_dict
 
@@ -877,10 +958,26 @@ def edit_credentials():
                     instructions = "\n\tEnter '0' to exit."
                     instructions += "\n\tPlease select a user -> "
 
-                    selected_user = int(input(instructions).strip())
+                    selected_option = int(input(instructions).strip())
 
-                    if selected_user == 0:
+                    if selected_option == 0:
                         break
+
+                    elif selected_option < 0:
+                        print("\n\tNegative values are not accepted.")
+                        short_pause()
+
+                    elif selected_option > len(creds_dict):
+                        print(f"\n\tOnly option 1 to {len(creds_dict)} are allowed.")
+                        short_pause()
+
+                    else:
+                        for count, username in enumerate(creds_dict, 1):
+                            if selected_option == count:
+                                selected_user = username
+                                break
+                        
+                        edit_menu(selected_user)
                 
                 except ValueError:
                     print("\n\tOnly digits are accepted.")
