@@ -321,7 +321,7 @@ class Simple_Food_Server(Login_Server):
                     break
 
             except Exception:
-                print(f"Error -> {error}")
+                print(f"Error -> {error}.")
 
             finally:
                 # To prevent blocking issues.
