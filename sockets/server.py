@@ -25,7 +25,7 @@ class Login_Server(Server):
         if db_file_exist:
             try:
                 sqlite_connection = sqlite3.connect(self.db_filename)
-                print("[Create new user] Connection to DB successful.")
+                print("[create_new_user] Connection to DB successful.")
 
                 query = "INSERT INTO credentials (username, password, is_admin, discount) VALUES "
                 query += f"(\"{new_username}\", \"{new_password}\", \"{is_admin}\", \"{discount}\")"
@@ -43,7 +43,7 @@ class Login_Server(Server):
                 # If sql connection exist, close the sql connection.
                 if (sqlite_connection):
                     sqlite_connection.close()
-                    print("[Create new user] Sqlite connection closed")
+                    print("[create_new_user] Sqlite connection closed")
         
         else:
             print("Unable to find DB file.")
@@ -55,7 +55,7 @@ class Login_Server(Server):
         if db_file_exist:
             try:
                 sqlite_connection = sqlite3.connect(self.db_filename)
-                print("[Update credentials] Connect to DB successful.")
+                print("[update_credentials] Connect to DB successful.")
 
                 cursor = sqlite_connection.cursor()
                 cursor.execute(query)
@@ -65,12 +65,12 @@ class Login_Server(Server):
                 return len(result)
 
             except sqlite3.Error as error:
-                print(f"Error while connecting to sqlite -> {error}")
+                print(f"Error while connecting to sqlite -> {error}.")
             
             finally:
                 if (sqlite_connection):
                     sqlite_connection.close()
-                    print("[Update credentials] Sqlite connection closed")
+                    print("[update_credentials] Sqlite connection closed.")
 
         else:
             print("Unable to find DB file.")
@@ -82,7 +82,7 @@ class Login_Server(Server):
         if db_file_exist:
             try:
                 sqlite_connection = sqlite3.connect(self.db_filename)
-                print("[Get credentials] Connect to DB successful.")
+                print("[get_credentials] Connect to DB successful.")
 
                 query = f"SELECT username, is_admin, discount FROM credentials"
 
@@ -93,12 +93,12 @@ class Login_Server(Server):
                 return result
 
             except sqlite3.Error as error:
-                print(f"Error while connecting to sqlite -> {error}")
+                print(f"Error while connecting to sqlite -> {error}.")
             
             finally:
                 if (sqlite_connection):
                     sqlite_connection.close()
-                    print("[Get credentials] Sqlite connection closed")
+                    print("[get_credentials] Sqlite connection closed.")
 
         else:
             print("Unable to find DB file.")
@@ -110,7 +110,7 @@ class Login_Server(Server):
         if db_file_exist:
             try:
                 sqlite_connection = sqlite3.connect(self.db_filename)
-                print("[Check Username] Connection to DB successful.")
+                print("[check_new_username] Connection to DB successful.")
 
                 query = f"SELECT username FROM credentials WHERE "
                 query += f"username = \"{new_username}\" LIMIT 1"
@@ -122,12 +122,12 @@ class Login_Server(Server):
                 return result
 
             except sqlite3.Error as error:
-                print(f"Error while connecting to sqlite -> {error}")
+                print(f"Error while connecting to sqlite -> {error}.")
 
             finally:
                 if (sqlite_connection):
                     sqlite_connection.close()
-                    print("[Check Username] Sqlite connection closed")
+                    print("[check_new_username] Sqlite connection closed.")
         
         else:
             print("Unable to find DB file.")
@@ -139,7 +139,7 @@ class Login_Server(Server):
         if db_file_exist:
             try:
                 sqlite_connection = sqlite3.connect(self.db_filename)
-                print("[Authenticate] Connection to DB successful.")
+                print("[authenticate_user] Connection to DB successful.")
                
                 query = f"SELECT username, password, is_admin, discount FROM credentials WHERE "
                 query += f"username = \"{username}\" and password = \"{password}\" LIMIT 1"
@@ -151,13 +151,13 @@ class Login_Server(Server):
                 return result
 
             except sqlite3.Error as error:
-                print(f"Error while connecting to sqlite -> {error}")
+                print(f"Error while connecting to sqlite -> {error}.")
 
             finally:
                 # If sql connection exist, close the sql connection.
                 if (sqlite_connection):
                     sqlite_connection.close()
-                    print("[Authenticate] Sqlite connection closed")
+                    print("[authenticate_user] Sqlite connection closed.")
         else:
             print("Unable to find DB file.")
             sys.exit(1)
@@ -214,7 +214,20 @@ class Simple_Food_Server(Login_Server):
                         connection.send(b'update_username_successful')
                         
                     else:
-                        print(f'Error when executing -> {query}')
+                        print(f'Error when executing -> {query}.')
+                        sys.exit(1)
+
+                elif data_received == 'update_password':
+                    connection.send(b'ok')
+
+                    query = connection.recv(2048).decode()
+                    result = self.update_credentials(query)
+
+                    if result == 0:
+                        connection.send(b'update_password_successful')
+
+                    else:
+                        print(f'Error when executing -> {query}.')
                         sys.exit(1)
 
                 elif data_received == 'get_credentials':
@@ -278,7 +291,7 @@ class Simple_Food_Server(Login_Server):
            
             else:
                 client_addr, client_port = connection.getpeername()
-                print(f"Connection dropped -> IP: {client_addr} PORT: {client_port}")
+                print(f"Connection dropped -> IP: {client_addr} PORT: {client_port}.")
 
                 # Empty return -> Will execute code block in `finally :`
                 return
@@ -294,13 +307,13 @@ class Simple_Food_Server(Login_Server):
 
         while True:
             try:
-                print("Waiting for a new call at accept()")
+                print("Waiting for a new call at accept().")
 
                 connection, address = server_socket.accept()
                 client_addr, client_port = address
 
                 connection_made_time = datetime.now().strftime("%H:%M:%S")            
-                print(f"[{connection_made_time}] Received connection from -> IP: {client_addr} PORT: {client_port}")
+                print(f"[{connection_made_time}] Received connection from -> IP: {client_addr} PORT: {client_port}.")
 
                 return_code = self.handler(connection)
 
@@ -313,7 +326,7 @@ class Simple_Food_Server(Login_Server):
             finally:
                 # To prevent blocking issues.
                 connection.close()
-                print(f"Closing connection -> IP: {client_addr} PORT: {client_port}")
+                print(f"Closing connection -> IP: {client_addr} PORT: {client_port}.")
 
         server_socket.close()
         print("Simple Food Server stopped.")

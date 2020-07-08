@@ -844,9 +844,63 @@ def convert_creds_to_dict(creds):
 
         creds_dict[username] = [is_admin, discount]
 
+def change_password(selected_user):
+    clear_screen()
+    print_header(f"\tChange Password for {selected_user}.")
+
+    instructions = "\tFor passwords:"
+    instructions += "\n\tAt least 1 uppercase, 1 lowercase, 1 number and 1 special character."
+    instructions += "\n\tLeading and Trailing whitespaces for passwords will be removed."
+    print(instructions)
+
+    new_password = input("\n\tEnter new password -> ").strip()
+    repeat_new_password = input("\tEnter new password again -> ").strip()
+
+    if new_password == repeat_new_password:
+        error = password_check(new_password)
+
+        if error == '':
+            hashed_password = md5(new_password.encode()).hexdigest()
+
+            query = f"UPDATE credentials SET password=\"{hashed_password}\" WHERE username=\"{selected_user}\""
+
+            client_socket = connect_to_server()
+            client_socket.connect((HOST, PORT))
+
+            client_socket.send(b'update_password')
+            server_reply = client_socket.recv(255).decode()
+
+            if server_reply == "ok":
+                client_socket.send(query.encode())
+                update_password_reply = client_socket.recv(255).decode()
+
+                if update_password_reply == 'update_password_successful':
+                    client_socket.close()
+                    print("\n\tPassword changed successfully!")
+                    pause()
+                    return "break"
+
+                else:
+                    print("\n\tSomething wrong with updating password in the backend.")
+                    print("\n\tTerminating client.")
+                    sys.exit(1)
+
+            else:
+                print("\n\tReceived response other than 'ok' for 'update_password'.")
+                print("\tExiting program.")
+                sys.exit(1)
+
+        else:
+            print(error)
+            pause()
+
+    else:
+        print("\n\tPassword does not tally!")
+        pause()
+
 def change_username(selected_user):
     clear_screen()
-    print_header("\tChange username.")
+    print_header(f"\tChange Username for {selected_user}.")
 
     print("\tOnly accepts alphabets.")
     print(f"\n\tOld username -> {selected_user}")
@@ -876,6 +930,9 @@ def change_username(selected_user):
                 update_username_reply = client_socket.recv(255).decode()
 
                 if update_username_reply == 'update_username_successful':
+                    client_socket.close()
+                    print("\n\tUsername changed successfully!")
+                    pause()
                     return "break"
 
                 else:
@@ -884,12 +941,12 @@ def change_username(selected_user):
                     sys.exit(1)
 
             else:
-                print("\n\tReceived response other than 'ok' for Update Username.")
+                print("\n\tReceived response other than 'ok' for 'update_username'.")
                 print("\tExiting program.")
                 sys.exit(1)
 
         else:
-            print("\n\tNew username must not be a duplicate on an existing username.")
+            print("\n\tNew username must not be a duplicate of an existing username.")
             short_pause()
 
     else:
@@ -910,7 +967,7 @@ def edit_menu(selected_user):
         try:
             instructions = "\n\tOnly digits are accepted."
             instructions += "\n\tEnter '0' to exit."
-            instructions += "\n\tOption -> "
+            instructions += "\n\n\tOption -> "
 
             option = int(input(instructions).strip())
 
@@ -919,6 +976,10 @@ def edit_menu(selected_user):
 
             elif option == 1:
                 if change_username(selected_user) == 'break':
+                    break
+
+            elif option == 2:
+                if change_password(selected_user) == 'break':
                     break
 
         except ValueError:
@@ -1036,6 +1097,31 @@ def admin_menu(username):
             print(f"\n\tOnly accepts digits.")
             short_pause()
 
+def password_check(new_password):
+    lower_regex = re.compile(r'[a-z]+')
+    upper_regex = re.compile(r'[A-Z]+')
+    digit_regex = re.compile(r'[0-9]+')
+    special_char_regex = re.compile(r'\W+')
+
+    error = ''
+
+    if len(new_password) < 8:
+        error += "\n\tPassword must contain at least 8 characters."
+
+    if lower_regex.findall(new_password) == []:
+        error += "\n\tPassword must contain at least one lowercase character."
+
+    if upper_regex.findall(new_password) == []:
+        error += "\n\tPassword must contain at least one uppercase character." 
+
+    if digit_regex.findall(new_password) == []:
+        error += "\n\tPassword must contain at least one digit."
+
+    if special_char_regex.findall(new_password) == []:
+        error += "\n\tPassword must contain at least one special character."
+
+    return error
+
 def register():
     while True:
         clear_screen()
@@ -1046,6 +1132,7 @@ def register():
         instructions += "\n\n\tFor passwords:"
         instructions += "\n\tAt least 1 uppercase, 1 lowercase, 1 number and 1 special character."
         instructions += "\n\tLeading and Trailing whitespaces for passwords will be removed."
+        instructions += "\n\n\tAlternatively, enter 'exit' to go back to the main menu."
 
         print(instructions)
 
@@ -1053,91 +1140,81 @@ def register():
         regex = r"^[A-Za-z]*$"
         passed_regex = re.match(regex, new_username)
 
-        if passed_regex and new_username != '' and new_username != 'register':
-            client_socket = connect_to_server()
-            client_socket.connect((HOST, PORT))
+        if new_username != 'exit':
+            if passed_regex and new_username != '' and new_username != 'register':
+                client_socket = connect_to_server()
+                client_socket.connect((HOST, PORT))
 
-            client_socket.send(b'check_username')
-            server_reply = client_socket.recv(255).decode()
+                client_socket.send(b'check_username')
+                server_reply = client_socket.recv(255).decode()
 
-            if server_reply == "ok":
-                client_socket.send(new_username.encode())    
-                check_new_username_results = client_socket.recv(255).decode()
+                if server_reply == "ok":
+                    client_socket.send(new_username.encode())    
+                    check_new_username_results = client_socket.recv(255).decode()
 
-                if check_new_username_results == "new_username_ok":
-                    new_password = input("\tEnter new password -> ").strip()
+                    if check_new_username_results == "new_username_ok":
+                        new_password = input("\tEnter new password -> ").strip()
+                        repeat_new_password = input("\tEnter new password again -> ").strip()
 
-                    lower_regex = re.compile(r'[a-z]+')
-                    upper_regex = re.compile(r'[A-Z]+')
-                    digit_regex = re.compile(r'[0-9]+')
-                    special_char_regex = re.compile(r'\W+')
+                        if new_password == repeat_new_password:
+                            error = password_check(new_password)
 
-                    error = ''
+                            if error == '':
+                                hashed_password = md5(new_password.encode()).hexdigest()
+                                username_and_password = str([new_username, hashed_password]).encode()
 
-                    if len(new_password) < 8:
-                        error += "\n\tPassword must contain at least 8 characters."
+                                client_socket.send(username_and_password)
+                                account_creation_result = client_socket.recv(255).decode()
+                                client_socket.close()
+                            
+                                if account_creation_result == "ok":
+                                    print("\n\tAccount created!")
+                                    print("\tPlease login with your new username.")
+                                    pause()
+                                    break
 
-                    if lower_regex.findall(new_password) == []:
-                        error += "\n\tPassword must contain at least one lowercase character."
+                                elif account_creation_result == "not ok":
+                                    print("\n\tAccount creation failed!")
+                                    print(f"\taccount_creation_result -> {account_creation_result}")
+                                    pause()
 
-                    if upper_regex.findall(new_password) == []:
-                        error += "\n\tPassword must contain at least one uppercase character." 
+                                else:
+                                    print("\n\tReceived unknown response for 'create_new_user'")
+                                    sys.exit(1)
 
-                    if digit_regex.findall(new_password) == []:
-                        error += "\n\tPassword must contain at least one digit."
-
-                    if special_char_regex.findall(new_password) == []:
-                        error += "\n\tPassword must contain at least one special character."
-
-                    if error == '':
-                        hashed_password = md5(new_password.encode()).hexdigest()
-                        username_and_password = str([new_username, hashed_password]).encode()
-
-                        client_socket.send(username_and_password)
-                        account_creation_result = client_socket.recv(255).decode()
-                        client_socket.close()
-                    
-                        if account_creation_result == "ok":
-                            print("\n\tAccount created!")
-                            print("\tPlease login with your new username.")
-                            pause()
-                            break
-
-                        elif account_creation_result == "not ok":
-                            print("\n\tAccount creation failed!")
-                            print("\tWe will need the developer to take a look at it.")
-                            pause()
-
+                            else:
+                                print(error)
+                                client_socket.close()
+                                pause()
+                        
                         else:
-                            print("\n\tReceived unknown response for 'Create New User")
-                            sys.exit(1)
+                            print("\n\tPassword does not tally!")
+                            pause()
+
+                    elif check_new_username_results == "new_username_exists":
+                        print("\n\tDuplicate username found.")
+                        print("\tPlease choose a unique name.")
+
+                        client_socket.close()
+                        short_pause()
 
                     else:
-                        print(error)
-                        client_socket.close()
-                        pause()
-
-                elif check_new_username_results == "new_username_exists":
-                    print("\n\tDuplicate username found.")
-                    print("\tPlease choose a unique name.")
-
-                    client_socket.close()
-                    short_pause()
+                        print("\n\tReceived unknown response for 'Check if duplicate exists'.")
+                        print("\tExiting program.")
+                        sys.exit(1)
 
                 else:
-                    print("\n\tReceived unknown response for 'Check if duplicate exists'.")
+                    print("\n\tReceived response other than 'ok' for Register.")
                     print("\tExiting program.")
                     sys.exit(1)
 
             else:
-                print("\n\tReceived response other than 'ok' for Register.")
-                print("\tExiting program.")
-                sys.exit(1)
+                print("\n\tOnly accepts alphabets and no spaces for username.")
+                print("\tCheck your input again.")
+                short_pause()
 
         else:
-            print("\n\tOnly accepts alphabets and no spaces for username.")
-            print("\tCheck your input again.")
-            short_pause()
+            break
 
 def login_menu():
     while True:
