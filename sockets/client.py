@@ -898,6 +898,58 @@ def change_password(selected_user):
         print("\n\tPassword does not tally!")
         pause()
 
+def change_discount_rate(selected_user):
+    clear_screen()
+    print_header(f"\tChange Discount Rate for {selected_user}.")
+
+    # creds_dict[username] = [is_admin, discount]
+    old_discount_rate = creds_dict.get(selected_user)[1]
+
+    print("\tOnly accepts integers.")
+    print("\tEnter 'exit' to exit")
+
+    print(f"\n\tOld discount rate -> {old_discount_rate}")
+    new_discount_rate = input("\tNew discount rate -> ").lower().strip()
+
+    if new_discount_rate == "exit":
+        pass
+  
+    else:
+        try:
+            new_discount_rate = int(new_discount_rate)
+
+            query = f"UPDATE credentials SET discount=\"{new_discount_rate}\" WHERE username=\"{selected_user}\""
+
+            client_socket = connect_to_server()
+            client_socket.connect((HOST, PORT))
+
+            client_socket.send(b'update_discount_rate')
+            server_reply = client_socket.recv(255).decode()
+
+            if server_reply == "ok":
+                client_socket.send(query.encode())
+                update_discount_reply = client_socket.recv(255).decode()
+
+                if update_discount_reply == 'update_discount_rate_successful':
+                    client_socket.close()
+                    print("\n\tDiscount rate changed successfully!")
+                    pause()
+                    return "break"
+                
+                else:
+                    print("\n\tSomething wrong with updating discount rate in the backend.")
+                    print("\n\tTerminating client.")
+                    sys.exit(1)
+
+            else:
+                print("\n\tReceived response other than 'ok' for 'update_discount_rate'.")
+                print("\tExiting program.")
+                sys.exit(1)
+        
+        except ValueError:
+            print("\n\tOnly accepts integers.")
+            short_pause()
+
 def change_username(selected_user):
     clear_screen()
     print_header(f"\tChange Username for {selected_user}.")
@@ -981,6 +1033,10 @@ def edit_menu(selected_user):
             elif option == 2:
                 if change_password(selected_user) == 'break':
                     break
+            
+            elif option == 3:
+                if change_discount_rate(selected_user) == 'break':
+                    break
 
         except ValueError:
             print("\n\tOnly digits are accepted.")
@@ -1050,7 +1106,7 @@ def edit_credentials():
                 break
 
         else:
-            print("\n\tReceived response other than 'ok' for Register.")
+            print("\n\tReceived response other than 'ok' for 'get_credentials'.")
             print("\tExiting program.")
             sys.exit(1)
      

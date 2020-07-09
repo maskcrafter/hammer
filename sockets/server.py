@@ -204,6 +204,19 @@ class Simple_Food_Server(Login_Server):
                     data = eval(connection.recv(2048).decode())
                     self.update_file(self.filename, data)
 
+                elif data_received == 'update_discount_rate':
+                    connection.send(b'ok')
+
+                    query = connection.recv(2048).decode()
+                    result = self.update_credentials(query)
+
+                    if result == 0:
+                        connection.send(b'update_discount_rate_successful')
+
+                    else:
+                        print(f'Error when executing -> {query}.')
+                        sys.exit(1)
+
                 elif data_received == 'update_username':
                     connection.send(b'ok')
                     
