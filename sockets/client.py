@@ -965,6 +965,56 @@ def change_user_privilege(selected_user):
             print("\n\tOnly accepts integers.")
             short_pause()
 
+def delete_user(selected_user):
+    clear_screen()
+    print_header(f"\tDelete {selected_user} from DB.")
+    
+    print("\t1. No")
+    print("\t2. Yes")
+
+    try:
+        option = int(input("\n\tOption -> ").strip())
+
+        if option < 1 or option > 2:
+            print("\n\tValid option 1 - 2.")
+            short_pause()
+
+        elif option == 1:
+            pass
+
+        elif option == 2:
+            query = f"DELETE from credentials where username=\"{selected_user}\""
+
+            client_socket = connect_to_server()
+            client_socket.connect((HOST, PORT))
+
+            client_socket.send(b'delete_user')
+            server_reply = client_socket.recv(255).decode()
+
+            if server_reply == "ok":
+                client_socket.send(query.encode())
+                delete_user_reply = client_socket.recv(255).decode()
+
+                if delete_user_reply == 'delete_user_successful':
+                    client_socket.close()
+                    print(f"\n\tUser '{selected_user}' deleted successfully!")
+                    pause()
+                    return "break"
+                    
+                else:
+                    print("\n\tSomething wrong with updating discount rate in the backend.")
+                    print("\n\tTerminating client.")
+                    sys.exit(1)
+
+            else:
+                print("\n\tReceived response other than 'ok' for 'update_discount_rate'.")
+                print("\tExiting program.")
+                sys.exit(1)
+
+    except ValueError:
+        print("\n\tOnly accepts digit.")
+        short_pause()
+
 def change_discount_rate(selected_user):
     clear_screen()
     print_header(f"\tChange Discount Rate for {selected_user}.")
@@ -1109,6 +1159,15 @@ def edit_menu(selected_user):
             elif option == 4:
                 if change_user_privilege(selected_user) == 'break':
                     break
+
+            elif option == 5:
+                if len(creds_dict) > 1:
+                    if delete_user(selected_user) == 'break':
+                        break
+                    
+                else:
+                    print("\n\tMust not delete the remaining user.")
+                    short_pause()
 
         except ValueError:
             print("\n\tOnly digits are accepted.")

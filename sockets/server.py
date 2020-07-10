@@ -204,6 +204,19 @@ class Simple_Food_Server(Login_Server):
                     data = eval(connection.recv(2048).decode())
                     self.update_file(self.filename, data)
 
+                elif data_received == 'delete_user':
+                    connection.send(b'ok')
+
+                    query = connection.recv(2048).decode()
+                    result = self.update_credentials(query)
+
+                    if result == 0:
+                        connection.send(b'delete_user_successful')
+
+                    else:
+                        print(f'Error when executing -> {query}.')
+                        sys.exit(1)
+
                 elif data_received == 'change_user_privilege':
                     connection.send(b'ok')
 
