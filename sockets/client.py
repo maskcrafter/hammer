@@ -898,6 +898,73 @@ def change_password(selected_user):
         print("\n\tPassword does not tally!")
         pause()
 
+def change_user_privilege(selected_user):
+    clear_screen()
+    print_header(f"\tChange privileges for {selected_user}")
+
+    # creds_dict[username] = [is_admin, discount]
+    old_admin_privilege = creds_dict.get(selected_user)[0]
+    print(f"\tOld privileges - Admin -> {old_admin_privilege}")
+
+    print("\n\tOnly accepts integers.")
+    print("\tPress '0' for admin, '1' for user.")
+    print("\tEnter 'exit' to exit.")
+
+    new_admin_privilege = input("\n\tNew privileges - Admin -> ").lower().strip()
+
+    if new_admin_privilege == "exit":
+        pass
+
+    else:
+        try:
+            new_admin_privilege = int(new_admin_privilege)
+
+            if new_admin_privilege < 0 or new_admin_privilege > 1:
+                print("\n\tOnly accepts option 1 or 2.") 
+                short_pause()
+
+            elif new_admin_privilege == 0 or new_admin_privilege == 1:                
+                if new_admin_privilege == 0: 
+                    new_admin_privilege = "yes"
+                else: 
+                    new_admin_privilege = "no"
+
+                query = f"UPDATE credentials SET is_admin=\"{new_admin_privilege}\" WHERE username=\"{selected_user}\""
+
+                client_socket = connect_to_server()
+                client_socket.connect((HOST, PORT))
+
+                client_socket.send(b'change_user_privilege')
+                server_reply = client_socket.recv(255).decode()
+
+                if server_reply == "ok":
+                    client_socket.send(query.encode())
+                    update_admin_privilege_reply = client_socket.recv(255).decode()
+
+                    if update_admin_privilege_reply == 'change_user_privilege_successful':
+                        client_socket.close()
+                        print("\n\tUser privilege changed successfully!")
+                        pause()
+                        return "break"
+                    
+                    else:
+                        print("\n\tSomething wrong with updating user privilege in the backend.")
+                        print("\n\tTerminating client.")
+                        sys.exit(1)
+
+                else:
+                    print("\n\tReceived response other than 'ok' for 'change_user_privilege'.")
+                    print("\tExiting program.")
+                    sys.exit(1)
+
+            else:
+                print("\n\tOption invalid!")
+                short_pause()
+
+        except ValueError:
+            print("\n\tOnly accepts integers.")
+            short_pause()
+
 def change_discount_rate(selected_user):
     clear_screen()
     print_header(f"\tChange Discount Rate for {selected_user}.")
@@ -906,7 +973,7 @@ def change_discount_rate(selected_user):
     old_discount_rate = creds_dict.get(selected_user)[1]
 
     print("\tOnly accepts integers.")
-    print("\tEnter 'exit' to exit")
+    print("\tEnter 'exit' to exit.")
 
     print(f"\n\tOld discount rate -> {old_discount_rate}")
     new_discount_rate = input("\tNew discount rate -> ").lower().strip()
@@ -1014,7 +1081,8 @@ def edit_menu(selected_user):
         print("\t1. Change username to something else.")
         print("\t2. Change password to something else.")
         print("\t3. Change discount rate to something else.")
-        print(f"\t4. Delete {selected_user} from database.")
+        print(f"\t4. Add/Remove admin privilege.")
+        print(f"\t5. Delete {selected_user} from database.")
 
         try:
             instructions = "\n\tOnly digits are accepted."
@@ -1036,6 +1104,10 @@ def edit_menu(selected_user):
             
             elif option == 3:
                 if change_discount_rate(selected_user) == 'break':
+                    break
+
+            elif option == 4:
+                if change_user_privilege(selected_user) == 'break':
                     break
 
         except ValueError:
@@ -1116,7 +1188,7 @@ def admin_menu(username):
         print_header(f"\tAdmin console.\n\tProceed with caution.")
 
         print(f"\tWelcome {username}.\n")
-        print("\t1. Edit food name|price.")
+        print("\t1. Edit food name & price.")
         print("\t2. Edit credentials.")
         print("\t3. Shutdown server.")
 
