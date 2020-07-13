@@ -2,8 +2,9 @@
 {% block title %} {{ day_of_the_week }}'s Menu {% endblock %}
 
 {% block content %}
-    <p>Food menu for ({{ day_of_the_week}}).</p>
+    <h3>Food menu for ({{ day_of_the_week}}).</h3>
     
+    <hr><br>
     <table border = "1px solid black" width = '500px' style = "text-align : center">
         <tr>
             <th colspan = "2">Food Name</th>
@@ -18,6 +19,7 @@
             </tr>
         {% endfor %}  
     </table>
+    <br><hr>
 
     {% if day_of_the_week == current_day %}
         <p>Click <a href = '/order/form'><b>HERE</b></a> to order food.</p>

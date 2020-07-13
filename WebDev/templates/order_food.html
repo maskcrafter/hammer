@@ -2,8 +2,9 @@
 {% block title %} {{ current_day }}'s Menu {% endblock %}
 
 {% block content %}
-    <p>Food menu for ({{ current_day }}).</p>
-
+    <h3>Food menu for ({{ current_day }}).</h3>
+    
+    <hr><br>
     <form action = '/order/cart' method = "POST">
         <table border = "1px solid black" width = '600px' style = "text-align : center">
             <tr>
@@ -22,7 +23,7 @@
             {% endfor %}
         </table>
 
-        <br>
+        <br><hr><br>
         <input type = "submit" value = "Order Food">
         <br>
     </form>

@@ -40,6 +40,30 @@ def login():
 def register():
     return render_template('register.html')
 
+@app.route('/list_credentials')
+def list_credentials():
+    if 'is_admin' in session: 
+        credentials = get_credentials()
+        return render_template('list_credentials.html', credentials = credentials)
+    
+    else:
+        return redirect(url_for('login'))
+
+@app.route('/credentials/save', methods = ['GET', 'POST'])
+def save_credentials():
+    if 'is_admin' in session:
+        if request.method == 'POST':
+            post_parameters = request.form      
+            credentials = get_credentials()
+
+            return render_template('list_credentials.html', credentials = credentials, message = post_parameters)
+
+        else:
+            return redirect(url_for('home_admin'))
+
+    else:
+        return redirect(url_for('login'))
+
 @app.route('/parse_registration', methods = ['GET', 'POST'])
 def parse_registration():
     if request.method == 'POST':
@@ -94,7 +118,6 @@ def parse_registration():
 
         elif success != '':
             return render_template('register.html', success = Markup(success))
-
 
 @app.route('/logout', methods = ['GET', 'POST'])
 def logout():
@@ -588,6 +611,32 @@ def check_duplicate_username(username):
     
     else:
         print(f"Unable to find DB file.")
+        sys.exit(1)
+
+def get_credentials():
+    db_file_exist = path.exists(path_to_db)
+
+    if db_file_exist:
+        try:
+            sqlite_connection = sqlite3.connect(path_to_db)
+
+            query = f"SELECT username, is_admin, discount FROM credentials"
+
+            cursor = sqlite_connection.cursor()
+            cursor.execute(query)
+
+            result = cursor.fetchall()
+            return result
+
+        except sqlite3.Error as error:
+            print(f"Error -> {error}.")
+        
+        finally:
+            if (sqlite_connection):
+                sqlite_connection.close()
+
+    else:
+        print("Unable to find DB file.")
         sys.exit(1)
 
 def authenticate_user(username, password):

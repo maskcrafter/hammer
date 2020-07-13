@@ -6,8 +6,10 @@
 
 {% block content %}
     <h3>{{ day_of_the_week }}'s Menu</h3>
+    <hr>
 
     <table border = "1px solid black" width = '500px' style = "text-align : center">
+        <br>
         <tr>
             <th colspan = "2">Food Name</th>
             <th>Food Price</th>
@@ -24,9 +26,10 @@
                 <td><p><button type = "button" onclick = 'populate_food_name_and_food_price("{{ day_of_the_week }}", "{{ food_name }}", "{{ food_price }}")'>Edit</button></p></td>
             </tr>
         {% endfor %}
-    </table><br>
+    </table><br><hr>
 
     <form action = "/admin/save" method = "POST">
+        <br>
         <table width = '500px' style = "text-align: center">
             <tr>
                 <td> 
@@ -85,7 +88,7 @@
             </tr>
 
             <tr>
-                <td>
+                <td colspan = "2">
                     <a href = '/admin'>Back to Main Menu</a>
                 </td>
             </tr>
