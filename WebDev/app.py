@@ -36,6 +36,66 @@ def login():
     else:
         return render_template('login.html')
 
+@app.route('/register')
+def register():
+    return render_template('register.html')
+
+@app.route('/parse_registration', methods = ['GET', 'POST'])
+def parse_registration():
+    if request.method == 'POST':
+        post_parameters = request.form
+
+        new_username = post_parameters.get("new_username").lower().strip()
+        new_password = post_parameters.get("new_password").strip()
+        confirm_new_password = post_parameters.get("confirm_new_password").strip()
+
+        regex = r"^[A-Za-z]*$"
+        passed_regex = re.match(regex, new_username)
+
+        error = ''
+
+        if passed_regex and new_username != '':
+            check_duplicate_username_results = len(check_duplicate_username(new_username))
+            
+            if check_duplicate_username_results < 1:
+                if new_password == confirm_new_password:
+                    if new_password != '':
+                        error = password_check(new_password)
+
+                        if error == '':
+                            hashed_password = md5(new_password.encode()).hexdigest()
+                            create_new_user(new_username, hashed_password, "no", "5")
+
+                            success = "Account creation successful!<br>"
+                            success += "Please login into your new account by clicking on the Main Menu."
+
+                        # Failed password validation.
+                        else:
+                            pass
+                    
+                    # Empty password.
+                    else:
+                        error = "Passwords entered must not be empty."
+
+                # Password and Confirm password does not match.
+                else:
+                    error = "Passwords entered does not match."
+            
+            # check_duplicate_username_results > 0.
+            else:
+                error = "Duplicate username found in DB."
+        
+        # new_username regex check failed.
+        else:
+            error = "Check input for username again."
+
+        if error != '':
+            return render_template('register.html', error = Markup(error))
+
+        elif success != '':
+            return render_template('register.html', success = Markup(success))
+
+
 @app.route('/logout', methods = ['GET', 'POST'])
 def logout():
     if request.method == 'POST':
@@ -451,13 +511,84 @@ def print_receipt(order_number, payment_status, payer_name, payer_email):
 
             f.write(data)    
 
-def refresh_data():
-    global food_dict
-    global food_menu_of_the_day_dict
+def password_check(new_password):
+    lower_regex = re.compile(r'[a-z]+')
+    upper_regex = re.compile(r'[A-Z]+')
+    digit_regex = re.compile(r'[0-9]+')
+    special_char_regex = re.compile(r'\W+')
 
-    # To update the global nested dictionary and menu of the day data with new changes.
-    food_dict = load_data_to_nested_dict()
-    food_menu_of_the_day_dict = food_dict.get(CURRENT_DAY)
+    error = ''
+
+    if len(new_password) < 8:
+        error += "Password must contain at least 8 characters.<br>"
+
+    if lower_regex.findall(new_password) == []:
+        error += "Password must contain at least one lowercase character.<br>"
+
+    if upper_regex.findall(new_password) == []:
+        error += "Password must contain at least one uppercase character.<br>" 
+
+    if digit_regex.findall(new_password) == []:
+        error += "Password must contain at least one digit.<br>"
+
+    if special_char_regex.findall(new_password) == []:
+        error += "Password must contain at least one special character.<br>"
+
+    return error
+
+def create_new_user(new_username, new_password, is_admin, discount):
+    db_file_exist = path.exists(path_to_db)
+
+    if db_file_exist:
+        try:
+            sqlite_connection = sqlite3.connect(path_to_db)
+
+            query = "INSERT INTO credentials (username, password, is_admin, discount) VALUES "
+            query += f"(\"{new_username}\", \"{new_password}\", \"{is_admin}\", \"{discount}\")"
+
+            cursor = sqlite_connection.cursor()
+            cursor.execute(query)
+
+            sqlite_connection.commit()
+
+        except sqlite3.Error as error:
+            print(f"Error -> {error}")
+            sys.exit(1)
+
+        finally:
+            if (sqlite_connection):
+                sqlite_connection.close()
+   
+    else:
+        print("Unable to find DB file.")
+        sys.exit(1)
+
+def check_duplicate_username(username):
+    db_file_exist = path.exists(path_to_db)
+
+    if db_file_exist:
+        try:
+            sqlite_connection = sqlite3.connect(path_to_db)
+
+            query = f"SELECT * FROM credentials WHERE username=\"{username}\" LIMIT 1"
+
+            cursor = sqlite_connection.cursor()
+            cursor.execute(query)
+
+            result = cursor.fetchall()
+            return result
+
+        except sqlite3.Error as error:
+            print(f"Error -> {error}")
+            sys.exit(1)
+
+        finally:
+            if sqlite_connection:
+                sqlite_connection.close()
+    
+    else:
+        print(f"Unable to find DB file.")
+        sys.exit(1)
 
 def authenticate_user(username, password):
     db_file_exist = path.exists(path_to_db)
@@ -465,14 +596,14 @@ def authenticate_user(username, password):
     if db_file_exist:
         try:
             sqlite_connection = sqlite3.connect(path_to_db)
-            cursor = sqlite_connection.cursor()
 
             query = f"SELECT username, password, is_admin, discount FROM credentials WHERE "
             query += f"username = \"{username}\" and password = \"{password}\" LIMIT 1"
 
+            cursor = sqlite_connection.cursor()
             cursor.execute(query)
-            result = cursor.fetchall()
 
+            result = cursor.fetchall()
             return result
         
         except sqlite3.Error as error:
@@ -486,6 +617,14 @@ def authenticate_user(username, password):
     else:
         print(f"Unable to find DB file.")
         sys.exit(1)
+
+def refresh_data():
+    global food_dict
+    global food_menu_of_the_day_dict
+
+    # To update the global nested dictionary and menu of the day data with new changes.
+    food_dict = load_data_to_nested_dict()
+    food_menu_of_the_day_dict = food_dict.get(CURRENT_DAY)
 
 if __name__ == '__main__':
     refresh_data()
