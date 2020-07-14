@@ -5,7 +5,9 @@
 {% block head %}<script type = "text/javascript" src = "{{ url_for('static', filename = 'edit.js') }}"></script>{% endblock %}
 
 {% block content %}
-    <h3>{{ day_of_the_week }}'s Menu</h3>
+    <h3><u>{{ day_of_the_week }}'s Menu</u></h3>
+    <p>For food name, only <b>letters</b> and <b>spaces</b> are accepted.</p>
+    <p>For food price, only <b>floating point inputs</b> are accepted.</p>
     <hr>
 
     <table border = "1px solid black" width = '500px' style = "text-align : center">
@@ -47,7 +49,7 @@
                 </td>
 
                 <td>
-                    <input type = "text" name = "old_food_name" id = "old_food_name_text_box" readonly>
+                    <input type = "text" name = "old_food_name" id = "old_food_name_text_box" readonly placeholder = "Edit.">
                 </td>
             </tr>
 
@@ -57,7 +59,7 @@
                 </td>
 
                 <td>
-                    <input type = "number" name = "old_food_price" id = "old_food_price_num_box" readonly>
+                    <input type = "number" name = "old_food_price" id = "old_food_price_num_box" readonly placeholder = "Edit.">
                 </td>
             </tr>
 
@@ -67,7 +69,7 @@
                 </td>
                 
                 <td>
-                    <input type = "text" name = "new_food_name" id = "new_food_name_text_box">
+                    <input type = "text" name = "new_food_name" id = "new_food_name_text_box" placeholder = "New food name.">
                 </td>
             </tr>
         
@@ -77,7 +79,7 @@
                 </td>
                 
                 <td>
-                    <input type = "number" name = "new_food_price" id = "new_food_price_num_box" step = "0.05">
+                    <input type = "number" name = "new_food_price" id = "new_food_price_num_box" step = "0.05" min = "1" max = "20" placeholder = "Eg 3.50">
                 </td>
             </tr>
 
