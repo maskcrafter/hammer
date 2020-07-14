@@ -54,9 +54,55 @@ def save_credentials():
     if 'is_admin' in session:
         if request.method == 'POST':
             post_parameters = request.form      
-            credentials = get_credentials()
 
-            return render_template('list_credentials.html', credentials = credentials, message = post_parameters)
+            old_username = post_parameters.get("old_username").lower().strip()
+            new_username = post_parameters.get("new_username").lower().strip()
+
+            new_password = post_parameters.get("new_password").strip()
+            confirm_new_password = post_parameters.get("confirm_new_password").strip()
+
+            discount_rate = post_parameters.get("discount_rate").strip()
+            is_admin = post_parameters.get("is_admin").lower().strip()
+
+            regex = r"^[A-Za-z]*$"
+            passed_regex = re.match(regex, new_username)
+
+            if old_username != "":
+                if passed_regex and new_username != "":
+                    if new_password == confirm_new_password:
+                        error = password_check(new_password)
+
+                        if error == "":
+                            if is_admin == "yes" or is_admin == "no":
+                                try:
+                                    discount_rate = int(discount_rate)
+                                    hashed_password = md5(new_password.encode()).hexdigest()
+
+                                    query = f"UPDATE credentials SET username=\"{new_username}\", password=\"{hashed_password}\", "
+                                    query += f"is_admin=\"{is_admin}\", discount=\"{discount_rate}\" WHERE username=\"{old_username}\""
+
+                                    update_credentials(query)
+                                    message = "Update ok."
+
+                                except ValueError:
+                                    message = "Discount Rate must only be digits."
+
+                            else:
+                                message = "Admin Privilege must only be either \"yes\" or \"no\"."
+
+                        else:
+                            message = Markup(error)
+
+                    else:
+                        message = "Password and Confirm Password does not match."
+            
+                else:
+                    message = "New Username must only be alphabets and must not be empty."
+            else:
+                message = Markup("Old Username is empty.<br>Click on one of the entries in the table to populate the edit field.")
+
+            credentials = get_credentials()
+            return render_template('list_credentials.html', credentials = credentials, message = message)
 
         else:
             return redirect(url_for('home_admin'))
@@ -575,7 +621,7 @@ def create_new_user(new_username, new_password, is_admin, discount):
             sqlite_connection.commit()
 
         except sqlite3.Error as error:
-            print(f"Error -> {error}")
+            print(f"Error -> {error}.")
             sys.exit(1)
 
         finally:
@@ -613,6 +659,30 @@ def check_duplicate_username(username):
         print(f"Unable to find DB file.")
         sys.exit(1)
 
+def update_credentials(query):
+    db_file_exist = path.exists(path_to_db)
+
+    if db_file_exist:
+        try:
+            sqlite_connection = sqlite3.connect(path_to_db)
+
+            cursor = sqlite_connection.cursor()
+            cursor.execute(query)
+
+            sqlite_connection.commit()
+           
+        except sqlite3.Error as error:
+            print(f"Error -> {error}.")
+            sys.exit(1)
+        
+        finally:
+            if (sqlite_connection):
+                sqlite_connection.close()
+
+    else:
+        print("Unable to find DB file.")
+        sys.exit(1)
+
 def get_credentials():
     db_file_exist = path.exists(path_to_db)
 
@@ -630,6 +700,7 @@ def get_credentials():
 
         except sqlite3.Error as error:
             print(f"Error -> {error}.")
+            sys.exit(1)
         
         finally:
             if (sqlite_connection):
@@ -656,7 +727,7 @@ def authenticate_user(username, password):
             return result
         
         except sqlite3.Error as error:
-            print(f"Error -> {error}")
+            print(f"Error -> {error}.")
             sys.exit(1)
 
         finally:
