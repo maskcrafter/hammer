@@ -64,45 +64,61 @@ def save_credentials():
             discount_rate = post_parameters.get("discount_rate").strip()
             is_admin = post_parameters.get("is_admin").lower().strip()
 
-            regex = r"^[A-Za-z]*$"
+            regex = r"^[A-Za-z]+$"
             passed_regex = re.match(regex, new_username)
 
+            message = ""
+            success = ""
+
             if old_username != "":
-                if passed_regex and new_username != "":
-                    if new_password == confirm_new_password:
-                        error = password_check(new_password)
+                # New username only contains letters.
+                if passed_regex:
+                    check_duplicate_username_results = len(check_duplicate_username(new_username))
 
-                        if error == "":
-                            if is_admin == "yes" or is_admin == "no":
-                                try:
-                                    discount_rate = int(discount_rate)
-                                    hashed_password = md5(new_password.encode()).hexdigest()
+                    # Results < 1 means username not inside DB.
+                    if check_duplicate_username_results < 1:
+                        if new_password == confirm_new_password:
+                            error = password_check(new_password)
 
-                                    query = f"UPDATE credentials SET username=\"{new_username}\", password=\"{hashed_password}\", "
-                                    query += f"is_admin=\"{is_admin}\", discount=\"{discount_rate}\" WHERE username=\"{old_username}\""
+                            if error == "":
+                                if is_admin == "yes" or is_admin == "no":
+                                    try:
+                                        discount_rate = int(discount_rate)
+                                        hashed_password = md5(new_password.encode()).hexdigest()
 
-                                    update_credentials(query)
-                                    message = "Update ok."
+                                        query = f"UPDATE credentials SET username=\"{new_username}\", password=\"{hashed_password}\", "
+                                        query += f"is_admin=\"{is_admin}\", discount=\"{discount_rate}\" WHERE username=\"{old_username}\""
 
-                                except ValueError:
-                                    message = "Discount Rate must only be digits."
+                                        update_credentials(query)
+                                        success = "Update successful!"
+
+                                    except ValueError:
+                                        message = "Discount Rate must only be digits."
+
+                                else:
+                                    message = "Admin Privilege must only be either \"yes\" or \"no\"."
 
                             else:
-                                message = "Admin Privilege must only be either \"yes\" or \"no\"."
+                                message = Markup(error)
 
                         else:
-                            message = Markup(error)
-
-                    else:
-                        message = "Password and Confirm Password does not match."
+                            message = "Password and Confirm Password does not match."
             
+                    else:
+                        message = "New username is already an existing user inside DB."
+
                 else:
-                    message = "New Username must only be alphabets and must not be empty."
+                    message = "New Username must only be letters and must not be empty."
             else:
                 message = Markup("Old Username is empty.<br>Click on one of the entries in the table to populate the edit field.")
 
             credentials = get_credentials()
-            return render_template('list_credentials.html', credentials = credentials, message = message)
+
+            if message != "":
+                return render_template('list_credentials.html', credentials = credentials, message = message)
+            
+            elif success != "":
+                return render_template('list_credentials.html', credentials = credentials, success = success)
 
         else:
             return redirect(url_for('home_admin'))
@@ -119,12 +135,12 @@ def parse_registration():
         new_password = post_parameters.get("new_password").strip()
         confirm_new_password = post_parameters.get("confirm_new_password").strip()
 
-        regex = r"^[A-Za-z]*$"
+        regex = r"^[A-Za-z]+$"
         passed_regex = re.match(regex, new_username)
 
         error = ''
 
-        if passed_regex and new_username != '':
+        if passed_regex:
             check_duplicate_username_results = len(check_duplicate_username(new_username))
             
             if check_duplicate_username_results < 1:
@@ -182,10 +198,10 @@ def authenticate():
         username = post_parameters.get("username").lower().strip()
         password = post_parameters.get("password")
 
-        regex = r"^[a-z]*$"
+        regex = r"^[a-z]+$"
         passed_regex = re.match(regex, username)
 
-        if passed_regex and username != "" and password != "":
+        if passed_regex and password != "":
             hashed_password = md5(password.encode()).hexdigest()
 
             authentication_results = authenticate_user(username, hashed_password)
@@ -214,7 +230,7 @@ def authenticate():
                 return render_template('login.html', message = message) 
 
         else:
-            message = "Username must contain only alphabets.<br>"
+            message = "Username must contain only letters.<br>"
             message += "Username and Password must not be empty.<br>"
             message = Markup(message)
             
@@ -276,8 +292,8 @@ def save_changes():
 
             if old_food_name != "" and old_food_price != "":
                 if new_food_name != "" and new_food_price != "":
-                    # Only accepts alphabets and spaces.
-                    regex = r"^[A-Za-z ]*$"
+                    # Only accepts letters and spaces.
+                    regex = r"^[A-Za-z ]+$"
                     regex_passed = re.match(regex, new_food_name)
                     
                     if regex_passed:
@@ -336,7 +352,7 @@ def save_changes():
                                 message += "New food price must be in floating point format."
                     
                     else:
-                        message += "Only alphabets and spaces are accepted for New food"
+                        message += "Only letters and spaces are accepted for new food name."
 
                 else:
                     message += "New food name and/or food price must not be empty."
