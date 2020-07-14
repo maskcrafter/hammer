@@ -180,6 +180,9 @@ def parse_registration():
 
         elif success != '':
             return render_template('register.html', success = Markup(success))
+    
+    else:
+        return redirect(url_for('home_admin'))
 
 @app.route('/logout', methods = ['GET', 'POST'])
 def logout():
