@@ -1,4 +1,4 @@
-# SPAM - Client Server CLI and WEB UI
+# SPAM Assignment II
 
 Credentials are found on <b>creds.txt</b><br>
 Video demo are found on <b>Videos</b> folder.<br>
